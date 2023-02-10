@@ -42,7 +42,7 @@ public class TCPConnection {
         }
     }
 
-    private synchronized void disconnect() {
+    public synchronized void disconnect() {
         thread.interrupt();
         try {
             socket.close();

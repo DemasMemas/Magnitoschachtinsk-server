@@ -12,7 +12,11 @@ public class Game {
         this.sessionID = ID;
         this.firstPlayerConnection = firstPlayerConnection;
         this.firstPlayer = firstPlayer;
-        this.password = password;
+        if (password.equals("noPassword"))
+            this.password = "";
+        else
+            this.password = password;
+
     }
 
     public String getCommand(){
@@ -54,7 +58,7 @@ public class Game {
     @Override
     public String toString(){
         if (secondPlayer != null)
-        return firstPlayer + "," + secondPlayer + "," + sessionID + ",";
-        else return firstPlayer + ", ," + sessionID + ",";
+        return firstPlayer + "," + secondPlayer + "," + sessionID + "," + getPassword().length() + ",";
+        else return firstPlayer + ", ," + sessionID + "," + getPassword().length() + ",";
     }
 }

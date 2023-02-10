@@ -9,13 +9,9 @@ public class MainServer implements TCPConnectionListener {
         new MainServer();
     }
 
-    private final ArrayList<TCPConnection> connections = new ArrayList<>();
-
     private MainServer() {
         System.out.println("Server running...");
-        Runnable task = () -> {
-            while (true) gameLoop();
-        };
+        Runnable task = () -> { while (true) gameLoop(); };
         new Thread(task).start();
         try (ServerSocket serverSocket = new ServerSocket(8080)) {
             while (true) {
@@ -33,7 +29,6 @@ public class MainServer implements TCPConnectionListener {
 
     @Override
     public synchronized void onConnectionReady(TCPConnection tcpConnection) {
-        connections.add(tcpConnection);
         System.out.println("New connection: " + tcpConnection.toString());
     }
 
@@ -41,40 +36,56 @@ public class MainServer implements TCPConnectionListener {
     public synchronized void onReceiveString(TCPConnection tcpConnection, String value) {
         System.out.println(value);
         // обработать входящее сообщение
-        ArrayList<String> commandList = new ArrayList<>();
-        Collections.addAll(commandList, value.split(","));
-        CommandHandler.handCommand(commandList, tcpConnection);
+        try {
+            ArrayList<String> commandList = new ArrayList<>();
+            Collections.addAll(commandList, value.split(","));
+            CommandHandler.handCommand(commandList, tcpConnection);
+        } catch (NullPointerException e){ onDisconnect(tcpConnection); }
     }
 
     @Override
     public synchronized void onDisconnect(TCPConnection tcpConnection) {
+        for (Game tempGame:sessionList){
+            if (tempGame.getFirstPlayerConnection().equals(tcpConnection)){
+                tempGame.setCommand("closeGame," + tempGame.getSessionID());
+                break;
+            }
+            try {
+                if (tempGame.getSecondPlayerConnection().equals(tcpConnection)){
+                    tempGame.setCommand("closeGame," + tempGame.getSessionID());
+                    break;
+                }
+            } catch (Exception ignored){ }
+        }
+        tcpConnection.disconnect();
         System.out.println(tcpConnection.toString() + " disconnected");
-        connections.remove(tcpConnection);
     }
 
     @Override
-    public void onException(TCPConnection tcpConnection, IOException e) { System.out.println("TCPConnection exception: " + e); }
+    public void onException(TCPConnection tcpConnection, IOException e) {
+        System.out.println("TCPConnection exception: " + e);
+    }
 
     public synchronized void gameLoop(){
-        for(Game currentGame:sessionList){
-            ArrayList<String> commandList = new ArrayList<>();
-            Collections.addAll(commandList, currentGame.getCommand().split(","));
-            CommandHandler.handGameCommand(commandList);
-        }
+        try {
+            for(Game currentGame:sessionList){
+                ArrayList<String> commandList = new ArrayList<>();
+                Collections.addAll(commandList, currentGame.getCommand().split(","));
+                CommandHandler.handGameCommand(commandList);
+            }
+        } catch (Exception ignored){  }
+
     }
 
     public static void addNewSession(Game tempGame){
         sessionList.add(tempGame);
     }
 
-    public static void dropSession(Game tempGame){
-        sessionList.remove(tempGame);
-    }
+    public static void dropSession(Game tempGame){ sessionList.remove(tempGame); }
 
     public static Game getGameByID(int ID){
-        for (Game tempGame:sessionList) {
+        for (Game tempGame:sessionList)
             if (tempGame.getSessionID() == ID) return tempGame;
-        }
         return null;
     }
 

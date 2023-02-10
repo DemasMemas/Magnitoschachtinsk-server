@@ -20,8 +20,13 @@ public class CommandHandler {
                     tempGame.setStarted(true);
                     tempGame.setCommand("sendMsg," + tempGame.getSessionID() + ","
                             + tempGame.getSecondPlayer() + ",Game joined with ID: " + tempGame.getSessionID());
-                    tcpConnection.sendString("acceptJoin");
+                    tcpConnection.sendString("acceptJoin," + tempGame.getSessionID());
                 }
+            }
+            case "chatMsg" -> {
+                Game tempGame = MainServer.getGameByID(Integer.parseInt(commandList.get(2)));
+                tempGame.setCommand("sendMsg," + tempGame.getSessionID() + ","
+                        + commandList.get(1) + "," + commandList.get(3));
             }
         }
     }
@@ -36,6 +41,13 @@ public class CommandHandler {
                 try {
                     MainServer.getGameByID(Integer.parseInt(commandList.get(1))).getFirstPlayerConnection().sendString("writeChatMsg," + commandList.get(2) + "," + commandList.get(3));
                     MainServer.getGameByID(Integer.parseInt(commandList.get(1))).getSecondPlayerConnection().sendString("writeChatMsg," + commandList.get(2) + "," + commandList.get(3));
+                } catch (NullPointerException ignored) { }
+            }
+            case "closeGame" -> {
+                try {
+                    MainServer.getGameByID(Integer.parseInt(commandList.get(1))).getFirstPlayerConnection().sendString("closeGame");
+                    MainServer.getGameByID(Integer.parseInt(commandList.get(1))).getSecondPlayerConnection().sendString("closeGame");
+                    MainServer.dropSession(MainServer.getGameByID(Integer.parseInt(commandList.get(1))));
                 } catch (NullPointerException ignored) { }
             }
         }
