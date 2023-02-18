@@ -1,3 +1,6 @@
+import java.util.ArrayList;
+import java.util.Random;
+
 public class Game {
     private final String firstPlayer;
     private String secondPlayer;
@@ -7,6 +10,10 @@ public class Game {
     private TCPConnection secondPlayerConnection;
     private String lastCommand;
     private boolean started;
+    private final ArrayList<String> commandQuery;
+    private int playerTurn = 0;
+    private int turnTime;
+    private final Random random = new Random();
 
     public Game(int ID, TCPConnection firstPlayerConnection, String firstPlayer, String password){
         this.sessionID = ID;
@@ -17,11 +24,14 @@ public class Game {
         else
             this.password = password;
 
+        lastCommand = "";
+        commandQuery = new ArrayList<>();
     }
 
     public String getCommand(){
         String tempReturnCommand = lastCommand;
         lastCommand = "";
+        checkCommandQuery();
         return tempReturnCommand;
     }
 
@@ -29,8 +39,10 @@ public class Game {
         return sessionID;
     }
 
-    public void setCommand(String newCommand){
+    public synchronized void setCommand(String newCommand){
+        if (!lastCommand.equals(""))
         lastCommand = newCommand;
+        else commandQuery.add(newCommand);
     }
 
     public String getFirstPlayer() {
@@ -53,7 +65,18 @@ public class Game {
 
     public boolean isStarted() { return started; }
 
-    public void setStarted(boolean started) { this.started = started; }
+    public void setStarted(boolean started) {
+        this.started = started;
+        if (started) startGame();
+        else endGame();
+    }
+
+    public synchronized void checkCommandQuery(){
+        if (commandQuery.size() != 0 && lastCommand.equals("")){
+            lastCommand = commandQuery.get(0);
+            commandQuery.remove(0);
+        }
+    }
 
     @Override
     public String toString(){
@@ -61,4 +84,33 @@ public class Game {
         return firstPlayer + "," + secondPlayer + "," + sessionID + "," + getPassword().length() + ",";
         else return firstPlayer + ", ," + sessionID + "," + getPassword().length() + ",";
     }
+
+    public void gameLoop(){ setCommand("changeTime," + sessionID + "," + --turnTime); }
+
+    public void startGame(){
+        //выбор первого игрока, раздача карт
+        playerTurn = random.nextInt(2);
+        if (playerTurn == 0) setCommand("showFirstPlayer," + sessionID + "," + firstPlayer);
+        else setCommand("showFirstPlayer," + sessionID + "," + secondPlayer);
+
+        // Запуск таймера на ход
+        turnTime = 60;
+        Runnable task = () -> { while (isStarted()) try {
+            Thread.sleep(1000);
+            gameLoop();
+        } catch (InterruptedException e) {
+            e.printStackTrace(); }};
+        new Thread(task).start();
+    }
+
+    public void changeTurn(){
+        playerTurn = Math.abs(playerTurn-1);
+        turnTime = 60;
+    }
+
+    public void endGame(){
+
+    }
+
+    public int getPlayerTurn(){ return playerTurn; }
 }

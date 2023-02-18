@@ -3,6 +3,9 @@ import java.net.ServerSocket;
 import java.util.ArrayList;
 import java.util.Collections;
 
+// 192.168.67.241
+// 192.168.43.216
+
 public class MainServer implements TCPConnectionListener {
     static ArrayList<Game> sessionList = new ArrayList<>();
     public static void main(String[] args) {
@@ -13,7 +16,7 @@ public class MainServer implements TCPConnectionListener {
         System.out.println("Server running...");
         Runnable task = () -> { while (true) gameLoop(); };
         new Thread(task).start();
-        try (ServerSocket serverSocket = new ServerSocket(8080)) {
+        try (ServerSocket serverSocket = new ServerSocket(8080, 50, null)) {
             while (true) {
                 try {
                     new TCPConnection(this, serverSocket.accept());
@@ -48,13 +51,11 @@ public class MainServer implements TCPConnectionListener {
         for (Game tempGame:sessionList){
             if (tempGame.getFirstPlayerConnection().equals(tcpConnection)){
                 tempGame.setCommand("closeGame," + tempGame.getSessionID());
-                break;
-            }
+                break; }
             try {
                 if (tempGame.getSecondPlayerConnection().equals(tcpConnection)){
                     tempGame.setCommand("closeGame," + tempGame.getSessionID());
-                    break;
-                }
+                    break; }
             } catch (Exception ignored){ }
         }
         tcpConnection.disconnect();
