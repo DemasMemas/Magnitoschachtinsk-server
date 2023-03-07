@@ -37,6 +37,7 @@ public class CommandHandler {
                     MainServer.getGameByID(Integer.parseInt(commandList.get(1))).getFirstPlayerConnection().sendString("takeTurn");
                 else MainServer.getGameByID(Integer.parseInt(commandList.get(1))).getSecondPlayerConnection().sendString("takeTurn");
             }
+            case "takeCard" -> MainServer.getGameByID(Integer.parseInt(commandList.get(1))).takeCard(commandList.get(2));
         }
     }
 

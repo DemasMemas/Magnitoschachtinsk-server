@@ -1,4 +1,9 @@
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Random;
 
 public class Game {
@@ -14,6 +19,10 @@ public class Game {
     private int playerTurn = 0;
     private int turnTime;
     private final Random random = new Random();
+    private final HashMap<Integer,Card> firstPlayerDeck = new HashMap<>();
+    private final HashMap<Integer,Card> secondPlayerDeck = new HashMap<>();
+
+    Connection conn = new DatabaseHandler().getConnection();
 
     public Game(int ID, TCPConnection firstPlayerConnection, String firstPlayer, String password){
         this.sessionID = ID;
@@ -26,6 +35,8 @@ public class Game {
 
         lastCommand = "";
         commandQuery = new ArrayList<>();
+
+        fillFirstPlayerDeck();
     }
 
     public String getCommand(){
@@ -61,7 +72,22 @@ public class Game {
 
     public void setSecondPlayerConnection(TCPConnection secondPlayerConnection) { this.secondPlayerConnection = secondPlayerConnection; }
 
-    public void setSecondPlayer(String secondPlayer) { this.secondPlayer = secondPlayer; }
+    public void setSecondPlayer(String secondPlayer) {
+        this.secondPlayer = secondPlayer;
+        try {
+            PreparedStatement preparedStatement = conn.prepareStatement("SELECT decks.cards FROM decks,users WHERE decks.deck_id = users.active_deck AND users.nickname = ?");
+            preparedStatement.setString(1, secondPlayer);
+            ResultSet resultSet = preparedStatement.executeQuery();
+            resultSet.next();
+
+            for (String value : resultSet.getString("cards").split(","))
+                secondPlayerDeck.put(Integer.parseInt(value.split(":")[0]),
+                        getUserCardByID(Integer.parseInt(value.split(":")[0]),
+                                Integer.parseInt(value.split(":")[1])));
+        } catch (SQLException exception) {
+            exception.printStackTrace();
+        }
+    }
 
     public boolean isStarted() { return started; }
 
@@ -104,8 +130,8 @@ public class Game {
     }
 
     public void changeTurn(){
-        playerTurn = Math.abs(playerTurn-1);
         turnTime = 60;
+        playerTurn = Math.abs(playerTurn-1);
     }
 
     public void endGame(){
@@ -113,4 +139,64 @@ public class Game {
     }
 
     public int getPlayerTurn(){ return playerTurn; }
+
+    public Card getUserCardByID(int id, int currentAmount) {
+        PreparedStatement cardPreparedStatement;
+        try {
+            cardPreparedStatement = conn.prepareStatement("SELECT * FROM cards WHERE card_id = ?");
+            cardPreparedStatement.setInt(1, id);
+            ResultSet cardResultSet = cardPreparedStatement.executeQuery();
+            cardResultSet.next();
+            return new Card(cardResultSet.getInt("card_id"),
+                    cardResultSet.getString("name"),
+                    cardResultSet.getString("image_path"),
+                    cardResultSet.getString("type"),
+                    cardResultSet.getString("description"),
+                    cardResultSet.getInt("deck_limit"),
+                    cardResultSet.getString("cost_type"),
+                    cardResultSet.getInt("health_status"),
+                    cardResultSet.getString("effects"),
+                    cardResultSet.getInt("price"),
+                    cardResultSet.getInt("rareness"),
+                    cardResultSet.getInt("attack"),
+                    cardResultSet.getInt("defence"),
+                    cardResultSet.getInt("stealth"),
+                    currentAmount);
+        } catch (SQLException exception) {
+            return null;
+        }
+    }
+
+    public void fillFirstPlayerDeck(){
+        try {
+            PreparedStatement preparedStatement = conn.prepareStatement("SELECT decks.cards FROM decks,users WHERE decks.deck_id = users.active_deck AND users.nickname = ?");
+            preparedStatement.setString(1, firstPlayer);
+            ResultSet resultSet = preparedStatement.executeQuery();
+            resultSet.next();
+
+            for (String value : resultSet.getString("cards").split(","))
+                firstPlayerDeck.put(Integer.parseInt(value.split(":")[0]),
+                        getUserCardByID(Integer.parseInt(value.split(":")[0]),
+                                Integer.parseInt(value.split(":")[1])));
+        } catch (SQLException exception) {
+            exception.printStackTrace();
+        }
+    }
+
+    public void takeCard(String playerName){
+        if (playerName.equals(firstPlayer))
+            firstPlayerConnection.sendString("takeCard," + takeCardFromDeck(firstPlayerDeck).card_id);
+        else secondPlayerConnection.sendString("takeCard," + takeCardFromDeck(secondPlayerDeck).card_id);
+    }
+
+    public Card takeCardFromDeck(HashMap<Integer, Card> deck){
+        Object[] cardNumbs = deck.keySet().toArray();
+        Object key = cardNumbs[random.nextInt(cardNumbs.length)];
+        int cardNumb = Integer.parseInt(String.valueOf(key));
+        Card tempCard = deck.get(cardNumb);
+        tempCard.current_amount -= 1;
+        if (tempCard.current_amount == 0) deck.remove(cardNumb);
+        else deck.replace(cardNumb, tempCard);
+        return tempCard;
+    }
 }
