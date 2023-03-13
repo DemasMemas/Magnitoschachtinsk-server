@@ -59,7 +59,7 @@ public class MainServer implements TCPConnectionListener {
             } catch (Exception ignored){ }
         }
         tcpConnection.disconnect();
-        System.out.println(tcpConnection.toString() + " disconnected");
+        System.out.println(tcpConnection + " disconnected");
     }
 
     @Override

@@ -38,6 +38,14 @@ public class CommandHandler {
                 else MainServer.getGameByID(Integer.parseInt(commandList.get(1))).getSecondPlayerConnection().sendString("takeTurn");
             }
             case "takeCard" -> MainServer.getGameByID(Integer.parseInt(commandList.get(1))).takeCard(commandList.get(2));
+            case "playCard" -> MainServer.getGameByID(Integer.parseInt(commandList.get(1))).
+                    playCard(commandList.get(2), commandList.get(3), commandList.get(4));
+            case "cardFromHand" -> {
+                if (commandList.get(2).equals(MainServer.getGameByID(Integer.parseInt(commandList.get(1))).getFirstPlayer()))
+                    MainServer.getGameByID(Integer.parseInt(commandList.get(1))).getSecondPlayerConnection().sendString("enemyCardFromHand");
+                else MainServer.getGameByID(Integer.parseInt(commandList.get(1))).getFirstPlayerConnection().sendString("enemyCardFromHand");
+            }
+            case "endTurn" -> MainServer.getGameByID(Integer.parseInt(commandList.get(1))).checkRoundEnd(commandList.get(2));
         }
     }
 
@@ -66,7 +74,6 @@ public class CommandHandler {
                     MainServer.getGameByID(Integer.parseInt(commandList.get(1))).getSecondPlayerConnection().sendString("changeTime," + commandList.get(2));
                 }
             }
-        } catch (NullPointerException ignored) {
-        }
+        } catch (NullPointerException ignored) {}
     }
 }

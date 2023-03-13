@@ -1,8 +1,14 @@
+import GameObjects.Building;
+import GameObjects.Equip.Armor;
+import GameObjects.Equip.Weapon;
+import GameObjects.Person;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Random;
 
@@ -21,6 +27,10 @@ public class Game {
     private final Random random = new Random();
     private final HashMap<Integer,Card> firstPlayerDeck = new HashMap<>();
     private final HashMap<Integer,Card> secondPlayerDeck = new HashMap<>();
+    private final ArrayList<Card> firstPlayerActiveCards = new ArrayList<>();
+    private final ArrayList<Card> secondPlayerActiveCards = new ArrayList<>();
+    private boolean firstPlayerEndRound = false;
+    private boolean secondPlayerEndRound = false;
 
     Connection conn = new DatabaseHandler().getConnection();
 
@@ -74,14 +84,18 @@ public class Game {
 
     public void setSecondPlayer(String secondPlayer) {
         this.secondPlayer = secondPlayer;
+        makeDeck(secondPlayer, secondPlayerDeck);
+    }
+
+    private void makeDeck(String player, HashMap<Integer, Card> playerDeck) {
         try {
             PreparedStatement preparedStatement = conn.prepareStatement("SELECT decks.cards FROM decks,users WHERE decks.deck_id = users.active_deck AND users.nickname = ?");
-            preparedStatement.setString(1, secondPlayer);
+            preparedStatement.setString(1, player);
             ResultSet resultSet = preparedStatement.executeQuery();
             resultSet.next();
 
             for (String value : resultSet.getString("cards").split(","))
-                secondPlayerDeck.put(Integer.parseInt(value.split(":")[0]),
+                playerDeck.put(Integer.parseInt(value.split(":")[0]),
                         getUserCardByID(Integer.parseInt(value.split(":")[0]),
                                 Integer.parseInt(value.split(":")[1])));
         } catch (SQLException exception) {
@@ -168,25 +182,18 @@ public class Game {
     }
 
     public void fillFirstPlayerDeck(){
-        try {
-            PreparedStatement preparedStatement = conn.prepareStatement("SELECT decks.cards FROM decks,users WHERE decks.deck_id = users.active_deck AND users.nickname = ?");
-            preparedStatement.setString(1, firstPlayer);
-            ResultSet resultSet = preparedStatement.executeQuery();
-            resultSet.next();
-
-            for (String value : resultSet.getString("cards").split(","))
-                firstPlayerDeck.put(Integer.parseInt(value.split(":")[0]),
-                        getUserCardByID(Integer.parseInt(value.split(":")[0]),
-                                Integer.parseInt(value.split(":")[1])));
-        } catch (SQLException exception) {
-            exception.printStackTrace();
-        }
+        makeDeck(firstPlayer, firstPlayerDeck);
     }
 
     public void takeCard(String playerName){
-        if (playerName.equals(firstPlayer))
+        if (playerName.equals(firstPlayer)){
             firstPlayerConnection.sendString("takeCard," + takeCardFromDeck(firstPlayerDeck).card_id);
-        else secondPlayerConnection.sendString("takeCard," + takeCardFromDeck(secondPlayerDeck).card_id);
+            secondPlayerConnection.sendString("enemyTakeCard");
+        }
+        else {
+            secondPlayerConnection.sendString("takeCard," + takeCardFromDeck(secondPlayerDeck).card_id);
+            firstPlayerConnection.sendString("enemyTakeCard");
+        }
     }
 
     public Card takeCardFromDeck(HashMap<Integer, Card> deck){
@@ -198,5 +205,87 @@ public class Game {
         if (tempCard.current_amount == 0) deck.remove(cardNumb);
         else deck.replace(cardNumb, tempCard);
         return tempCard;
+    }
+
+    public void playCard(String playerName, String cardType, String cardInfo){
+        cancelRoundEnd(playerName);
+        switch (cardType){
+            case "person" -> {
+                String[] info = cardInfo.split(" ");
+                Card tempCard = getUserCardByID(Integer.parseInt(info[0]), 1);
+                Person tempPerson = new Person();
+
+                // setting armor
+                String[] armorInfo = info[1].split(";");
+                Armor tempArmor;
+                if (armorInfo.length == 3)
+                    tempArmor = new Armor(Integer.parseInt(armorInfo[0]), Integer.parseInt(armorInfo[1]),
+                            armorInfo[2], null);
+                else
+                    tempArmor = new Armor(Integer.parseInt(armorInfo[0]), Integer.parseInt(armorInfo[1]),
+                            armorInfo[2], Arrays.stream(armorInfo[3].split(";")).mapToInt(Integer::parseInt).toArray());
+                tempPerson.setArmor(tempArmor);
+
+                // setting weapon
+                String[] weaponInfo = info[1].split(";");
+                Weapon tempWeapon;
+                if (weaponInfo.length == 3)
+                    tempWeapon = new Weapon(Integer.parseInt(weaponInfo[0]), Integer.parseInt(weaponInfo[1]),
+                            weaponInfo[2], null);
+                else
+                    tempWeapon = new Weapon(Integer.parseInt(weaponInfo[0]), Integer.parseInt(weaponInfo[1]),
+                            weaponInfo[2], Arrays.stream(weaponInfo[3].split(";")).mapToInt(Integer::parseInt).toArray());
+                tempPerson.setWeapon(tempWeapon);
+
+                // set everything else later
+                tempCard.person = tempPerson;
+                if (playerName.equals(firstPlayer)){
+                    firstPlayerActiveCards.add(tempCard);
+                    secondPlayerConnection.sendString("enemyCard,people," + tempCard.getPersonCard());
+                } else {
+                    firstPlayerConnection.sendString("enemyCard,people," + tempCard.getPersonCard());
+                    secondPlayerActiveCards.add(tempCard);
+                }
+            }
+            case "building" -> {
+                String[] info = cardInfo.split(" ");
+                Card tempCard = getUserCardByID(Integer.parseInt(info[0]), 1);
+                // set everything else later
+                tempCard.building = new Building(Integer.parseInt(info[0]));
+                if (playerName.equals(firstPlayer)){
+                    firstPlayerActiveCards.add(tempCard);
+                    secondPlayerConnection.sendString("enemyCard,building," + tempCard.getBuildingCard());
+                } else {
+                    firstPlayerConnection.sendString("enemyCard,building," + tempCard.getBuildingCard());
+                    secondPlayerActiveCards.add(tempCard);
+                }
+            }
+        }
+    }
+
+    public void checkRoundEnd(String playerName){
+        if (playerName.equals(firstPlayer)) firstPlayerEndRound = true;
+        else secondPlayerEndRound = true;
+        if(firstPlayerEndRound && secondPlayerEndRound){
+            firstPlayerEndRound = false;
+            secondPlayerEndRound = false;
+            endRound();
+        }
+    }
+
+    public void endRound(){
+        takeCard(firstPlayer);
+        takeCard(firstPlayer);
+        takeCard(secondPlayer);
+        takeCard(secondPlayer);
+        firstPlayerConnection.sendString("updateResources");
+        secondPlayerConnection.sendString("updateResources");
+        firstPlayerConnection.sendString("checkRoundEndStatus");
+        secondPlayerConnection.sendString("checkRoundEndStatus");
+    }
+
+    public void cancelRoundEnd(String playerName){
+        if (playerName.equals(firstPlayer) && firstPlayerEndRound) firstPlayerEndRound = false;
+        if (playerName.equals(secondPlayer) && secondPlayerEndRound) secondPlayerEndRound = false;
     }
 }
