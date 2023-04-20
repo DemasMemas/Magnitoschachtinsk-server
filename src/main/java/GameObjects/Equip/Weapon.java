@@ -2,7 +2,8 @@ package GameObjects.Equip;
 
 public class Weapon {
     private final int id;
-    private int attack;;
+    private int attack;
+    ;
     private String name;
     private int[] effectList;
 
@@ -42,14 +43,11 @@ public class Weapon {
     }
 
     @Override
-    public String toString(){
-        if (getEffectList() != null){
-            StringBuilder effects = new StringBuilder();
-            for (int i:getEffectList())
-                effects.append(i).append(":");
-            effects.deleteCharAt(effects.length() - 1);
-            return getId() + ";" + getAttack() + ";" + getName() + ";" + effects;
-        }
-        else return getId() + ";" + getAttack() + ";" + getName();
+    public String toString() {
+        StringBuilder effects = new StringBuilder();
+        for (int i : getEffectList())
+            effects.append(i).append(":");
+        if (effects.length() > 0) effects.deleteCharAt(effects.length() - 1);
+        return getId() + ";" + getAttack() + ";" + getName() + ";" + effects;
     }
 }

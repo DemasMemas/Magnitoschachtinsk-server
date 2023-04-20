@@ -47,9 +47,9 @@ public class Card {
     }
 
     public String getPersonCard(){
-        return card_id + " " + person.getArmorString() + " " + person.getWeaponString();
-        //return card_id + " " + person.getArmorString() + " " + person.getHelmetString() + " " +
-        //        person.getWeaponString() + " " + person.firstEquipString() + " " + person.secondEquipString();
+        return card_id + " . " + person.getArmorString() + " . " + person.getWeaponString() + " . "
+                + person.getHelmetString() + " . " + person.firstEquipString() + " . " + person.secondEquipString()
+                + " . " + (person.isNotWounded() ? "1" : "0");
     }
 
     public String getBuildingCard(){

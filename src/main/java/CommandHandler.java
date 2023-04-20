@@ -32,20 +32,104 @@ public class CommandHandler {
                         + commandList.get(1) + "," + commandList.get(3));
             }
             case "changeTurn" -> {
-                MainServer.getGameByID(Integer.parseInt(commandList.get(1))).changeTurn();
-                if(MainServer.getGameByID(Integer.parseInt(commandList.get(1))).getPlayerTurn() == 0)
-                    MainServer.getGameByID(Integer.parseInt(commandList.get(1))).getFirstPlayerConnection().sendString("takeTurn");
-                else MainServer.getGameByID(Integer.parseInt(commandList.get(1))).getSecondPlayerConnection().sendString("takeTurn");
+                Game tempGame = MainServer.getGameByID(Integer.parseInt(commandList.get(1)));
+                tempGame.changeTurn();
+                if(tempGame.getPlayerTurn() == 0)
+                    tempGame.getFirstPlayerConnection().sendString("takeTurn");
+                else tempGame.getSecondPlayerConnection().sendString("takeTurn");
             }
             case "takeCard" -> MainServer.getGameByID(Integer.parseInt(commandList.get(1))).takeCard(commandList.get(2));
             case "playCard" -> MainServer.getGameByID(Integer.parseInt(commandList.get(1))).
                     playCard(commandList.get(2), commandList.get(3), commandList.get(4));
             case "cardFromHand" -> {
-                if (commandList.get(2).equals(MainServer.getGameByID(Integer.parseInt(commandList.get(1))).getFirstPlayer()))
-                    MainServer.getGameByID(Integer.parseInt(commandList.get(1))).getSecondPlayerConnection().sendString("enemyCardFromHand");
-                else MainServer.getGameByID(Integer.parseInt(commandList.get(1))).getFirstPlayerConnection().sendString("enemyCardFromHand");
+                Game tempGame = MainServer.getGameByID(Integer.parseInt(commandList.get(1)));
+                if (commandList.get(2).equals(tempGame.getFirstPlayer())){
+                    tempGame.getSecondPlayerConnection().sendString("enemyCardFromHand");
+                    tempGame.decrementHandSize(tempGame.getFirstPlayer());
+                    tempGame.cancelRoundEnd(tempGame.getFirstPlayer());
+                }
+                else {
+                    tempGame.getFirstPlayerConnection().sendString("enemyCardFromHand");
+                    tempGame.decrementHandSize(tempGame.getSecondPlayer());
+                    tempGame.cancelRoundEnd(tempGame.getSecondPlayer());
+                }
             }
             case "endTurn" -> MainServer.getGameByID(Integer.parseInt(commandList.get(1))).checkRoundEnd(commandList.get(2));
+            case "newObjective" -> {
+                Game tempGame = MainServer.getGameByID(Integer.parseInt(commandList.get(1)));
+                if (commandList.get(2).equals(tempGame.getFirstPlayer()))
+                    tempGame.getSecondPlayerConnection().sendString("enemyNewObjective," + commandList.get(3));
+                else tempGame.getFirstPlayerConnection().sendString("enemyNewObjective," + commandList.get(3));
+            }
+            case "updateEnemyVictoryPoints" -> {
+                Game tempGame = MainServer.getGameByID(Integer.parseInt(commandList.get(1)));
+                if (commandList.get(2).equals(tempGame.getFirstPlayer()))
+                    tempGame.getSecondPlayerConnection().sendString("updateEnemyVictoryPoints," +
+                            commandList.get(3) + "," + commandList.get(4));
+                else tempGame.getFirstPlayerConnection().sendString("updateEnemyVictoryPoints," +
+                        commandList.get(3) + "," + commandList.get(4));
+            }
+            case "updateEnemyObjectiveDuration" -> {
+                Game tempGame = MainServer.getGameByID(Integer.parseInt(commandList.get(1)));
+                if (commandList.get(2).equals(tempGame.getFirstPlayer()))
+                    tempGame.getSecondPlayerConnection().sendString("updateEnemyObjectiveDuration," +
+                            commandList.get(3));
+                else tempGame.getFirstPlayerConnection().sendString("updateEnemyObjectiveDuration," +
+                        commandList.get(3));
+            }
+            case "removeKilledAlly" -> {
+                Game tempGame = MainServer.getGameByID(Integer.parseInt(commandList.get(1)));
+                if (commandList.get(2).equals(tempGame.getFirstPlayer()))
+                    tempGame.getSecondPlayerConnection().sendString("removeKilledAlly," +
+                            commandList.get(3));
+                else tempGame.getFirstPlayerConnection().sendString("removeKilledAlly," +
+                        commandList.get(3));
+            }
+            case "removeKilledEnemy" -> {
+                Game tempGame = MainServer.getGameByID(Integer.parseInt(commandList.get(1)));
+                if (commandList.get(2).equals(tempGame.getFirstPlayer()))
+                    tempGame.getSecondPlayerConnection().sendString("removeKilledEnemy," +
+                            commandList.get(3));
+                else tempGame.getFirstPlayerConnection().sendString("removeKilledEnemy," +
+                        commandList.get(3));
+            }
+            case "changeEnemyPersonStatus" -> {
+                Game tempGame = MainServer.getGameByID(Integer.parseInt(commandList.get(1)));
+                if (commandList.get(2).equals(tempGame.getFirstPlayer()))
+                    tempGame.getSecondPlayerConnection().sendString("changeEnemyPersonStatus," +
+                            commandList.get(3) + "," + commandList.get(4));
+                else tempGame.getFirstPlayerConnection().sendString("changeEnemyPersonStatus," +
+                        commandList.get(3) + "," + commandList.get(4));
+            }
+            case "changeAllyPersonStatus" -> {
+                Game tempGame = MainServer.getGameByID(Integer.parseInt(commandList.get(1)));
+                if (commandList.get(2).equals(tempGame.getFirstPlayer()))
+                    tempGame.getSecondPlayerConnection().sendString("changeAllyPersonStatus," +
+                            commandList.get(3) + "," + commandList.get(4));
+                else tempGame.getFirstPlayerConnection().sendString("changeAllyPersonStatus," +
+                        commandList.get(3) + "," + commandList.get(4));
+            }
+            case "updateDefenders" -> {
+                Game tempGame = MainServer.getGameByID(Integer.parseInt(commandList.get(1)));
+                if (commandList.get(2).equals(tempGame.getFirstPlayer()))
+                    tempGame.getSecondPlayerConnection().sendString("updateDefenders," +
+                            commandList.get(3) + "," + commandList.get(4) + "," + commandList.get(5));
+                else tempGame.getFirstPlayerConnection().sendString("updateDefenders," +
+                        commandList.get(3) + "," + commandList.get(4) + "," + commandList.get(5));
+            }
+            case "updateStatuses" -> {
+                Game tempGame = MainServer.getGameByID(Integer.parseInt(commandList.get(1)));
+                if (commandList.get(2).equals(tempGame.getFirstPlayer()))
+                    tempGame.getSecondPlayerConnection().sendString("updateStatuses," + commandList.get(3));
+                else tempGame.getFirstPlayerConnection().sendString("updateStatuses," + commandList.get(3));
+            }
+            case "updateMinedUp" -> {
+                Game tempGame = MainServer.getGameByID(Integer.parseInt(commandList.get(1)));
+                if (commandList.get(2).equals(tempGame.getFirstPlayer()))
+                    tempGame.getSecondPlayerConnection().sendString("updateMinedUp," + commandList.get(3));
+                else tempGame.getFirstPlayerConnection().sendString("updateMinedUp," + commandList.get(3));
+            }
+            case "endGame" -> MainServer.getGameByID(Integer.parseInt(commandList.get(1))).setStarted(false);
         }
     }
 
@@ -53,25 +137,26 @@ public class CommandHandler {
     // название команды, номер игры, имя отдавшего команду игрока, прочие параметры
     public static void handGameCommand(ArrayList<String> commandList) {
         try {
+            Game tempGame = MainServer.getGameByID(Integer.parseInt(commandList.get(1)));
             switch (commandList.get(0)) {
                 case "dropGame" -> MainServer.dropSession(MainServer.getGameByID(Integer.parseInt(commandList.get(1))));
                 case "setNewCommand" -> MainServer.getGameByID(Integer.parseInt(commandList.get(1))).setCommand(String.join(",", commandList));
                 case "sendMsg" -> {
-                    MainServer.getGameByID(Integer.parseInt(commandList.get(1))).getFirstPlayerConnection().sendString("writeChatMsg," + commandList.get(2) + "," + commandList.get(3));
-                    MainServer.getGameByID(Integer.parseInt(commandList.get(1))).getSecondPlayerConnection().sendString("writeChatMsg," + commandList.get(2) + "," + commandList.get(3));
+                    tempGame.getFirstPlayerConnection().sendString("writeChatMsg," + commandList.get(2) + "," + commandList.get(3));
+                    tempGame.getSecondPlayerConnection().sendString("writeChatMsg," + commandList.get(2) + "," + commandList.get(3));
                 }
                 case "closeGame" -> {
-                    MainServer.getGameByID(Integer.parseInt(commandList.get(1))).getFirstPlayerConnection().sendString("closeGame");
-                    MainServer.getGameByID(Integer.parseInt(commandList.get(1))).getSecondPlayerConnection().sendString("closeGame");
-                    MainServer.dropSession(MainServer.getGameByID(Integer.parseInt(commandList.get(1))));
+                    tempGame.getFirstPlayerConnection().sendString("closeGame");
+                    tempGame.getSecondPlayerConnection().sendString("closeGame");
+                    MainServer.dropSession(tempGame);
                 }
                 case "showFirstPlayer" -> {
-                    MainServer.getGameByID(Integer.parseInt(commandList.get(1))).getFirstPlayerConnection().sendString("showFirstPlayer," + commandList.get(2));
-                    MainServer.getGameByID(Integer.parseInt(commandList.get(1))).getSecondPlayerConnection().sendString("showFirstPlayer," + commandList.get(2));
+                    tempGame.getFirstPlayerConnection().sendString("showFirstPlayer," + commandList.get(2));
+                    tempGame.getSecondPlayerConnection().sendString("showFirstPlayer," + commandList.get(2));
                 }
                 case "changeTime" -> {
-                    MainServer.getGameByID(Integer.parseInt(commandList.get(1))).getFirstPlayerConnection().sendString("changeTime," + commandList.get(2));
-                    MainServer.getGameByID(Integer.parseInt(commandList.get(1))).getSecondPlayerConnection().sendString("changeTime," + commandList.get(2));
+                    tempGame.getFirstPlayerConnection().sendString("changeTime," + commandList.get(2));
+                    tempGame.getSecondPlayerConnection().sendString("changeTime," + commandList.get(2));
                 }
             }
         } catch (NullPointerException ignored) {}
