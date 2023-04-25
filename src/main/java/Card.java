@@ -1,5 +1,4 @@
 import GameObjects.Building;
-import GameObjects.Person;
 
 public class Card {
     int card_id;
@@ -17,7 +16,6 @@ public class Card {
     int defence;
     int stealth;
     int current_amount;
-    Person person;
     Building building;
 
     public Card(int card_id, String name, String image_path, String type, String description,
@@ -44,12 +42,6 @@ public class Card {
     @Override
     public String toString(){
         return card_id + " " + name + " " + current_amount + "/" + deck_limit;
-    }
-
-    public String getPersonCard(){
-        return card_id + " . " + person.getArmorString() + " . " + person.getWeaponString() + " . "
-                + person.getHelmetString() + " . " + person.firstEquipString() + " . " + person.secondEquipString()
-                + " . " + (person.isNotWounded() ? "1" : "0");
     }
 
     public String getBuildingCard(){

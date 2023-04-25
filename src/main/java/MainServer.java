@@ -1,5 +1,6 @@
 import java.io.IOException;
 import java.net.ServerSocket;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 
@@ -43,7 +44,7 @@ public class MainServer implements TCPConnectionListener {
             ArrayList<String> commandList = new ArrayList<>();
             Collections.addAll(commandList, value.split(","));
             CommandHandler.handCommand(commandList, tcpConnection);
-        } catch (NullPointerException e){ onDisconnect(tcpConnection); }
+        } catch (NullPointerException | SQLException e){ onDisconnect(tcpConnection); }
     }
 
     @Override

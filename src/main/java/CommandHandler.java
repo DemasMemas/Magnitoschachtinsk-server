@@ -1,9 +1,10 @@
+import java.sql.SQLException;
 import java.util.ArrayList;
 
 public class CommandHandler {
     private static int lastID = 0;
 
-    public static void handCommand(ArrayList<String> commandList, TCPConnection tcpConnection) {
+    public static void handCommand(ArrayList<String> commandList, TCPConnection tcpConnection) throws SQLException {
         switch (commandList.get(0)) {
             case "getGames" -> tcpConnection.sendString(MainServer.getSessions());
             case "createGame" -> {
@@ -39,6 +40,8 @@ public class CommandHandler {
                 else tempGame.getSecondPlayerConnection().sendString("takeTurn");
             }
             case "takeCard" -> MainServer.getGameByID(Integer.parseInt(commandList.get(1))).takeCard(commandList.get(2));
+            case "takeCardWithType" -> MainServer.getGameByID(Integer.parseInt(commandList.get(1))).takeCardWithType(commandList.get(2), commandList.get(3));
+            case "takeCardNotFromDeck" -> MainServer.getGameByID(Integer.parseInt(commandList.get(1))).takeCardNotFromDeck(commandList.get(2));
             case "playCard" -> MainServer.getGameByID(Integer.parseInt(commandList.get(1))).
                     playCard(commandList.get(2), commandList.get(3), commandList.get(4));
             case "cardFromHand" -> {
@@ -129,7 +132,11 @@ public class CommandHandler {
                     tempGame.getSecondPlayerConnection().sendString("updateMinedUp," + commandList.get(3));
                 else tempGame.getFirstPlayerConnection().sendString("updateMinedUp," + commandList.get(3));
             }
-            case "endGame" -> MainServer.getGameByID(Integer.parseInt(commandList.get(1))).setStarted(false);
+            case "endGame" -> MainServer.getGameByID(Integer.parseInt(commandList.get(1))).endGame(commandList.get(2),
+                    commandList.get(3), Integer.parseInt(commandList.get(4)), Integer.parseInt(commandList.get(5)));
+            case "endStatus" -> MainServer.getGameByID(Integer.parseInt(commandList.get(1))).finallyEndGame
+                    (commandList.get(2), Integer.parseInt(commandList.get(3)), Integer.parseInt(commandList.get(4)),
+                            Integer.parseInt(commandList.get(5)));
         }
     }
 
@@ -145,11 +152,7 @@ public class CommandHandler {
                     tempGame.getFirstPlayerConnection().sendString("writeChatMsg," + commandList.get(2) + "," + commandList.get(3));
                     tempGame.getSecondPlayerConnection().sendString("writeChatMsg," + commandList.get(2) + "," + commandList.get(3));
                 }
-                case "closeGame" -> {
-                    tempGame.getFirstPlayerConnection().sendString("closeGame");
-                    tempGame.getSecondPlayerConnection().sendString("closeGame");
-                    MainServer.dropSession(tempGame);
-                }
+                case "closeGame" -> MainServer.dropSession(tempGame);
                 case "showFirstPlayer" -> {
                     tempGame.getFirstPlayerConnection().sendString("showFirstPlayer," + commandList.get(2));
                     tempGame.getSecondPlayerConnection().sendString("showFirstPlayer," + commandList.get(2));
