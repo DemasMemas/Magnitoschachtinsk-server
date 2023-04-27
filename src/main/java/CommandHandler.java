@@ -137,6 +137,12 @@ public class CommandHandler {
             case "endStatus" -> MainServer.getGameByID(Integer.parseInt(commandList.get(1))).finallyEndGame
                     (commandList.get(2), Integer.parseInt(commandList.get(3)), Integer.parseInt(commandList.get(4)),
                             Integer.parseInt(commandList.get(5)));
+            case "playSound" -> {
+                Game tempGame = MainServer.getGameByID(Integer.parseInt(commandList.get(1)));
+                if (commandList.get(2).equals(tempGame.getFirstPlayer()))
+                    tempGame.getSecondPlayerConnection().sendString("playSound," + commandList.get(3));
+                else tempGame.getFirstPlayerConnection().sendString("playSound," + commandList.get(3));
+            }
         }
     }
 

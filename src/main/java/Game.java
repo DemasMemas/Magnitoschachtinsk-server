@@ -231,14 +231,9 @@ public class Game {
 
     public void draw() throws SQLException {
         PreparedStatement preparedStatement;
-        preparedStatement = conn.prepareStatement("UPDATE users SET dogtags = dogtags + 10, " +
-                "experience = experience + 2 WHERE nickname = ?");
-        preparedStatement.setString(1, firstPlayer);
-        preparedStatement.executeUpdate();
-        preparedStatement = conn.prepareStatement("UPDATE users SET dogtags = dogtags + 10, " +
-                "experience = experience + 2 WHERE nickname = ?");
-        preparedStatement.setString(1, secondPlayer);
-        preparedStatement.executeUpdate();
+        updateLevelAndDogtags(firstPlayer);
+        updateLevelAndDogtags(secondPlayer);
+
         int firstRating = getPlayerRating(firstPlayer);
         int secondRating = getPlayerRating(secondPlayer);
         int average = (firstRating + secondRating) / 2;
@@ -264,6 +259,33 @@ public class Game {
         firstPlayerConnection.sendString("endScreen,draw");
         secondPlayerConnection.sendString("endScreen,draw");
     }
+
+    private void updateLevelAndDogtags(String player) throws SQLException {
+        PreparedStatement preparedStatement;
+        preparedStatement = conn.prepareStatement("UPDATE users SET dogtags = dogtags + 10, " +
+                "experience = experience + 2 WHERE nickname = ?");
+        preparedStatement.setString(1, player);
+        preparedStatement.executeUpdate();
+        updateLevel(player);
+    }
+
+    public void updateLevel(String player){
+        try {
+            PreparedStatement preparedStatement;
+            ResultSet resultSet;
+            preparedStatement = conn.prepareStatement("SELECT * FROM users WHERE nickname = ?");
+            preparedStatement.setString(1, player);
+            resultSet = preparedStatement.executeQuery();
+            resultSet.next();
+            if (resultSet.getInt("experience") / 25 > resultSet.getInt("level")){
+                preparedStatement = conn.prepareStatement("UPDATE users SET experience = experience - users.level * 25, " +
+                        "level = level + 1 WHERE nickname = ?");
+                preparedStatement.setString(1, player);
+                preparedStatement.executeUpdate();
+            }
+        } catch (Exception ignored){}
+    }
+
     public void changeRating(String winner, String loser) throws SQLException {
         PreparedStatement preparedStatement;
         int winnerRating = getPlayerRating(winner);
@@ -271,14 +293,7 @@ public class Game {
         if (Math.abs(winnerRating - loserRating) >= 200) {
             if (winnerRating < loserRating){
                 int result = Math.abs(winnerRating - loserRating) / 8;
-                if (winnerRating + result > 1000) winnerRating = 1000 - result;
-                if (loserRating - result <= 0) loserRating = 1 + result;
-                preparedStatement = conn.prepareStatement("UPDATE users SET rating = ? WHERE nickname = ?");
-                preparedStatement.setInt(1, winnerRating + result);
-                preparedStatement.setString(2, winner);
-                preparedStatement.executeUpdate();
-                preparedStatement = conn.prepareStatement("UPDATE users SET rating = ? WHERE nickname = ?");
-                preparedStatement.setInt(1, loserRating - result);
+                preparedStatement = changeRating(winner, winnerRating, loserRating, result);
             } else {
                 if (winnerRating + 1 > 1000) winnerRating = 1000 - 1;
                 if (loserRating - 1 <= 0) loserRating = 1 + 1;
@@ -294,15 +309,7 @@ public class Game {
             if (winnerRating >= loserRating) preResult /= Math.pow(10, String.valueOf(winnerRating).length() - 1);
             else preResult /= Math.pow(10, String.valueOf(loserRating).length() - 1);
 
-            if (winnerRating + preResult > 1000) winnerRating = 1000 - preResult;
-            if (loserRating - preResult <= 0) loserRating = 1 + preResult;
-
-            preparedStatement = conn.prepareStatement("UPDATE users SET rating = ? WHERE nickname = ?");
-            preparedStatement.setInt(1, winnerRating + preResult);
-            preparedStatement.setString(2, winner);
-            preparedStatement.executeUpdate();
-            preparedStatement = conn.prepareStatement("UPDATE users SET rating = ? WHERE nickname = ?");
-            preparedStatement.setInt(1, loserRating - preResult);
+            preparedStatement = changeRating(winner, winnerRating, loserRating, preResult);
         }
         preparedStatement.setString(2, loser);
         preparedStatement.executeUpdate();
@@ -314,17 +321,33 @@ public class Game {
             secondPlayerConnection.sendString("endScreen,victory");
         }
     }
+
+    private PreparedStatement changeRating(String winner, int winnerRating, int loserRating, int result) throws SQLException {
+        PreparedStatement preparedStatement;
+        if (winnerRating + result > 1000) winnerRating = 1000 - result;
+        if (loserRating - result <= 0) loserRating = 1 + result;
+        preparedStatement = conn.prepareStatement("UPDATE users SET rating = ? WHERE nickname = ?");
+        preparedStatement.setInt(1, winnerRating + result);
+        preparedStatement.setString(2, winner);
+        preparedStatement.executeUpdate();
+        preparedStatement = conn.prepareStatement("UPDATE users SET rating = ? WHERE nickname = ?");
+        preparedStatement.setInt(1, loserRating - result);
+        return preparedStatement;
+    }
+
     public void lose(String playerName) throws SQLException {
         PreparedStatement preparedStatement = conn.prepareStatement("UPDATE users SET dogtags = dogtags + 5, " +
                 "experience = experience + 1 WHERE nickname = ?");
         preparedStatement.setString(1, playerName);
         preparedStatement.executeUpdate();
+        updateLevel(playerName);
     }
     public void win(String playerName) throws SQLException {
         PreparedStatement preparedStatement = conn.prepareStatement("UPDATE users SET dogtags = dogtags + 15, " +
                 "experience = experience + 3 WHERE nickname = ?");
         preparedStatement.setString(1, playerName);
         preparedStatement.executeUpdate();
+        updateLevel(playerName);
     }
 
     public int getPlayerTurn(){ return playerTurn; }
