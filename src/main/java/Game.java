@@ -5,6 +5,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Random;
 
@@ -422,7 +423,7 @@ public class Game {
             tempCard = deck.get(cardNumb);
         } while (!tempCard.type.equals(cardType));
         tempCard.current_amount -= 1;
-        if (tempCard.current_amount == 0) deck.remove(cardNumb);
+        if (tempCard.current_amount <= 0) deck.remove(cardNumb);
         else deck.replace(cardNumb, tempCard);
         return tempCard;
     }
