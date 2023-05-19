@@ -6,6 +6,7 @@ import java.util.Collections;
 
 // 192.168.67.241
 // 192.168.43.216
+// 192.168.1.9
 
 public class MainServer implements TCPConnectionListener {
     static ArrayList<Game> sessionList = new ArrayList<>();
